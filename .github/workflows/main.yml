@@ -1,0 +1,34 @@
+name: Push Economist to Kindle
+
+on:
+  schedule:
+    - cron: '0 0 * * 6' # 每周六北京时间上午 8 点运行
+  workflow_dispatch:      # 允许手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Find Latest Economist
+        id: find_file
+        run: |
+          # 在 TheEconomist 目录下寻找最新的 epub 文件
+          # 注意：根据原仓库路径，经济学人通常在 "TheEconomist" 文件夹下
+          FILE_PATH=$(ls -t TheEconomist/*.epub | head -n 1)
+          echo "Found file: $FILE_PATH"
+          echo "file_path=$FILE_PATH" >> $GITHUB_OUTPUT
+
+      - name: Send mail
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: 465
+          username: ${{ secrets.SENDER_EMAIL }}
+          password: ${{ secrets.SENDER_PASS }}
+          subject: Convert
+          to: ${{ secrets.KINDLE_EMAIL }}
+          from: GitHub Actions
+          attachments: ${{ steps.find_file.outputs.file_path }}
